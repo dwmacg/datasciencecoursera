@@ -1,3 +1,5 @@
+Explanation of variables
+
 id 
 	Unique id combining subject and activity                     
 
