@@ -1,4 +1,4 @@
-##1. Reading the subject and test files, and giving them descriptive variable names
+##1. Reading the subject and activity files in the text folder, and giving them descriptive variable names
 subject <- read.table("test/subject_test.txt")
 names(subject)[1] <- "subject"
 y <- read.table("test/y_test.txt")
