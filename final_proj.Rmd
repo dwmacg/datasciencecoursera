@@ -1,0 +1,81 @@
+---
+title: "Predicting manner of exercise"
+author: "David MacGregor"
+date: "2/23/2017"
+output: html_document
+---
+##Executive Summary
+
+In this report, the creation of a model to predict five classes of exercise based on data collected from accelometers attached to various body parts of exercises, who were then asked to lift weights in various manners. The model created is estimated to accurately predict class of exercise 99% of the time.
+
+##Data
+
+The data used for this report is the Weight Lifting Exercise Dataset from the Human Activity Recognition website (http://groupware.les.inf.puc-rio.br/har). The dataset used to construct and validate the model can be found here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv. This is a dataset of 19,622 cases with 160 variables. 
+
+The first step was to divide the data into training and validation sets, with 75% of the data in the training set.
+
+
+```{r setup, cache=T, results='hide'}
+library(dplyr)
+library(caret)
+library(kernlab)
+mydata<-read.csv("pmltraining.csv")
+```
+
+The first step was to divide the data into training and validation sets, with 75% of the data in the training set.
+```{r data prep, cache=T, results='asis'}
+dim(mydata)
+set.seed(2003)
+inTrain<-createDataPartition(y=mydata$classe, p=.75, list=F)
+training<-mydata[inTrain,]
+validation<-mydata[-inTrain,]
+dim(training)
+dim(validation)
+```
+Next we view the training set in RStudio (for the sake of brevity, I do not show the head of the data in this report.)
+
+The data includes several background variables, as well as summary variables such as average and standard deviation, that are irrelevant to the performance, and so those are eliminated.
+```{r view training, cache=T, results='asis'}
+View(training)
+
+training2<-training[,8:160]
+training2<-training2 %>% select(-starts_with("kur"))
+training2<-training2 %>% select(-starts_with("skew"))
+training2<-training2 %>% select(-starts_with("max"))
+training2<-training2 %>% select(-starts_with("min"))
+training2<-training2 %>% select(-starts_with("amp"))
+training2<-training2 %>% select(-starts_with("var"))
+training2<-training2 %>% select(-starts_with("avg"))
+training2<-training2 %>% select(-starts_with("stddev"))
+```
+
+A look at the distribution of the variables and plots of variables against each other show highly irregular distributions. The following plots show some representative examples.
+
+```{r plots}
+hist(training2$roll_arm); hist(training2$yaw_arm); plot(training2$roll_arm, training2$yaw_arm)
+```
+
+A prinicple components analysis suggests that the different classes seem to cluster, suggesting that a predictive model can be built.
+
+```{r principle components}
+dim(training2)
+prComp<-prcomp(log10(abs(training2[,-53])+1))
+plot(prComp$x[,1], prComp$x[,2], col=training2$classe)
+```
+
+Because the variable classe is a factor variable with five levels, and because of the irregular distribution of the variables, we fit a model on the training data using a random forest approach. Note that this approach requires no pre-processing of the data.
+```{r fit model, cache=T, results='hide'}
+set.seed(2003)
+modelfit<-train(classe~., data=training2, method="rf")
+```
+```{r fit, results='asis'}
+modelfit
+```
+This model predicts the variable classe in the training data set with an accuracy of .99. We next validate the model using the validation data set.
+```{r predict}
+pred<-predict(modelfit, newdata=validation)
+validpredright<-pred==validation$classe
+table(pred, validation$classe)
+
+```
+Here we see that out of 4904 cases in the validation set, the model predicts 4871 correctly, for an accuracy rate of .99.
